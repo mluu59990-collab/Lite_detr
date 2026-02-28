@@ -744,7 +744,7 @@ def build(image_set, args):
         "train": (root / "train/img", root / "train/instances_train.json"),
         "train_reg": (root / "train/img", root / "train/instances_train.json"),
 
-        "val": (root / "valid/val", Path("/kaggle/working/dataset_blur_coco_fixed/valid/instances_val_fixed.json")),
+        "val": (root / "valid/val", Path("/kaggle/input/datasets/minhluu0102/dataset-blur-paper11/dataset_blur_coco/valid/instances_val.json")),
         "eval_debug": (root / "valid/img", root / "valid/instances_val_fixed.json"),
 
         "test": (root / "test/img", root / "test/instances_test.json"),
