@@ -423,6 +423,44 @@ class ConvertCocoPolysToMask(object):
     def __init__(self, return_masks=False):
         self.return_masks = return_masks
 
+        # COCO category_id -> contiguous index (0..79)
+        self.coco_id_to_contiguous = {
+            1: 0, 2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 7: 6, 8: 7, 9: 8, 10: 9,
+            11: 10, 13: 11, 14: 12, 15: 13, 16: 14, 17: 15, 18: 16, 19: 17, 20: 18,
+            21: 19, 22: 20, 23: 21, 24: 22, 25: 23, 27: 24, 28: 25, 31: 26, 32: 27,
+            33: 28, 34: 29, 35: 30, 36: 31, 37: 32, 38: 33, 39: 34, 40: 35, 41: 36,
+            42: 37, 43: 38, 44: 39, 46: 40, 47: 41, 48: 42, 49: 43, 50: 44, 51: 45,
+            52: 46, 53: 47, 54: 48, 55: 49, 56: 50, 57: 51, 58: 52, 59: 53, 60: 54,
+            61: 55, 62: 56, 63: 57, 64: 58, 65: 59, 67: 60, 70: 61, 72: 62, 73: 63,
+            74: 64, 75: 65, 76: 66, 77: 67, 78: 68, 79: 69, 80: 70, 81: 71, 82: 72,
+            84: 73, 85: 74, 86: 75, 87: 76, 88: 77, 89: 78, 90: 79
+        }
+
+    def _map_category_ids(self, category_ids):
+        """
+        category_ids: list[int]
+        Return: list[int] mapped to contiguous labels starting from 0
+        - If ids look like COCO ids -> use COCO mapping
+        - Else assume custom dataset:
+            * if min_id >= 1 -> 1-based -> subtract 1
+            * else -> assume already 0-based
+        """
+        if len(category_ids) == 0:
+            return category_ids
+
+        # COCO-style: all ids are in mapping dict
+        if all((cid in self.coco_id_to_contiguous) for cid in category_ids):
+            return [self.coco_id_to_contiguous[cid] for cid in category_ids]
+
+        # custom dataset
+        mn = min(category_ids)
+        if mn >= 1:
+            # 1-based -> 0-based
+            return [cid - 1 for cid in category_ids]
+        else:
+            # already 0-based
+            return category_ids
+
     def __call__(self, image, target):
         w, h = image.size
 
@@ -430,18 +468,18 @@ class ConvertCocoPolysToMask(object):
         image_id = torch.tensor([image_id])
 
         anno = target["annotations"]
-
         anno = [obj for obj in anno if 'iscrowd' not in obj or obj['iscrowd'] == 0]
 
         boxes = [obj["bbox"] for obj in anno]
-        # guard against no boxes via resizing
         boxes = torch.as_tensor(boxes, dtype=torch.float32).reshape(-1, 4)
         boxes[:, 2:] += boxes[:, :2]
         boxes[:, 0::2].clamp_(min=0, max=w)
         boxes[:, 1::2].clamp_(min=0, max=h)
 
-        classes = [obj["category_id"] for obj in anno]
-        classes = torch.tensor(classes, dtype=torch.int64)
+        # ---- FIX: map category_id -> contiguous labels ----
+        cat_ids = [obj["category_id"] for obj in anno]
+        mapped = self._map_category_ids(cat_ids)
+        classes = torch.tensor(mapped, dtype=torch.int64)
 
         if self.return_masks:
             segmentations = [obj["segmentation"] for obj in anno]
@@ -473,8 +511,8 @@ class ConvertCocoPolysToMask(object):
             target["keypoints"] = keypoints
 
         # for conversion to coco api
-        area = torch.tensor([obj["area"] for obj in anno])
-        iscrowd = torch.tensor([obj["iscrowd"] if "iscrowd" in obj else 0 for obj in anno])
+        area = torch.tensor([obj["area"] for obj in anno]) if len(anno) > 0 else torch.zeros((0,), dtype=torch.float32)
+        iscrowd = torch.tensor([obj["iscrowd"] if "iscrowd" in obj else 0 for obj in anno]) if len(anno) > 0 else torch.zeros((0,), dtype=torch.int64)
         target["area"] = area[keep]
         target["iscrowd"] = iscrowd[keep]
 
@@ -482,7 +520,6 @@ class ConvertCocoPolysToMask(object):
         target["size"] = torch.as_tensor([int(h), int(w)])
 
         return image, target
-
 
 def make_coco_transforms(image_set, fix_size=False, strong_aug=False, args=None):
 
