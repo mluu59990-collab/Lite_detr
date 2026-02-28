@@ -114,4 +114,6 @@ use_detached_boxes_dec_out = False
 enc_scale = 3
 
 drop_lr_now=False
-
+key_aware = False
+key_aware_type = 'none'
+key_aware_scale = 1.0
