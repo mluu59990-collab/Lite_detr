@@ -115,4 +115,3 @@ enc_scale = 3
 
 drop_lr_now=False
 
-coco_path = "/kaggle/input/dataset_blur_paper1/dataset_blur_coco"
