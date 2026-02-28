@@ -43,7 +43,7 @@ def get_args_parser():
 
     # dataset parameters
     parser.add_argument('--dataset_file', default='coco')
-    parser.add_argument('--coco_path', type=str, default='/comp_robot/cv_public_dataset/COCO2017/')
+    parser.add_argument('--coco_path', type=str, default='/kaggle/input/datasets/minhluu0102/dataset-blur-paper11/dataset_blur_coco')
     parser.add_argument('--coco_panoptic_path', type=str)
     parser.add_argument('--remove_difficult', action='store_true')
     parser.add_argument('--fix_size', action='store_true')
