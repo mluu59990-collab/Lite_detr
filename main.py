@@ -243,6 +243,8 @@ def main(args):
             checkpoint = torch.hub.load_state_dict_from_url(
                 args.resume, map_location='cpu', check_hash=True)
         else:
+            import torch.serialization
+            torch.serialization.add_safe_globals([argparse.Namespace])
             checkpoint = torch.load(args.resume, map_location='cpu')
         model_without_ddp.load_state_dict(checkpoint['model'])
         if args.use_ema:
